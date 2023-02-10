@@ -15,15 +15,11 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_Data:
     m_SerializedData: []
-  m_GUID: fbbacb3efe9613b4faedc619cb2ae32f
-  m_SerializeEntries:
-  - m_GUID: ec86d6294f6777d4ca7ca8cdbeb71eae
-    m_Address: Assets/Bundles/Characters/Cat/character 1.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
+  m_GUID: e293c425bd8527844ad6f809d4806dd7
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 735e874f947d0e143a6b4e83f8a7283a, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 5586e9650f0e20d4d984e729dd63d083, type: 2}
-    - {fileID: 11400000, guid: 6997c49e1cf0bf842bdbe72e729384aa, type: 2}
+    - {fileID: 11400000, guid: b71267de56b7e6b48a4c0c4ade2332d2, type: 2}
+    - {fileID: 11400000, guid: 48662441bf1a8334b82d55940bbe2b40, type: 2}

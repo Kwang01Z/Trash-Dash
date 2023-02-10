@@ -194,6 +194,10 @@ namespace SPStudios.Tools {
 
             return _singletons.ContainsKey(singletonType);
         }
+        public static void Clear()
+        {
+            _singletons.Clear();
+        }
         #endregion
 
         #region Error Messaging

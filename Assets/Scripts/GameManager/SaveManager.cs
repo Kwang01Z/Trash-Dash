@@ -4,13 +4,21 @@ using UnityEngine;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
-public class SaveManager : MonoBehaviour
+using SPStudios.Tools;
+using UnityEditor;
+public class SaveManager : ReRegisterMonoSingleton
 {
-    PlayerData m_playerData;
+    [SerializeField] PlayerData m_playerData = new PlayerData();
+
+    protected override void OnInitOrAwake()
+    {
+        base.OnInitOrAwake();
+        LoadOrCreateNewData();
+    }
     public void Save()
     {
         Debug.Log("Saving!");
-        FileStream file = new FileStream(Application.persistentDataPath + "/Player.dat",FileMode.OpenOrCreate);
+        FileStream file = new FileStream(Application.persistentDataPath + "/Player.dat", FileMode.OpenOrCreate);
         try
         {
             BinaryFormatter formatter = new BinaryFormatter();
@@ -25,30 +33,35 @@ public class SaveManager : MonoBehaviour
             file.Close();
         }
     }
-    public void Load()
+    public void LoadOrCreateNewData()
     {
-        Debug.Log("Loading data!");
-        FileStream file = new FileStream(Application.persistentDataPath + "/Player.dat", FileMode.Open);
-        try
+        if (!File.Exists(Application.persistentDataPath + "/Player.dat"))
         {
-            BinaryFormatter formatter = new BinaryFormatter();
-            m_playerData = (PlayerData)formatter.Deserialize(file);
+            Debug.LogWarning("Do not Exits file save Player.dat");
+            Debug.Log("Begin create new data");
+            m_playerData = PlayerData.CreateNew();
         }
-        catch (SerializationException e)
+        else
         {
-            Debug.LogError("Loading data error: " + e);
-        }
-        finally
-        {
-            file.Close();
-        }
+            Debug.Log("Loading data!");
+            FileStream file = new FileStream(Application.persistentDataPath + "/Player.dat", FileMode.Open);
+            try
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                m_playerData = (PlayerData)formatter.Deserialize(file);
+            }
+            catch (SerializationException e)
+            {
+                Debug.LogError("Loading data error: " + e);
+            }
+            finally
+            {
+                file.Close();
+            }
+        }  
     }
-    public void InsertData(PlayerData data)
-    {
-        m_playerData = data;
-        Save();
-    }
-    public void ClearSave()
+    [MenuItem("Trash Dash Data Editor/Clear Save")]
+    public static void ClearSave()
     {
         Debug.Log("Clear Save!");
         try
@@ -59,5 +72,9 @@ public class SaveManager : MonoBehaviour
         {
             Debug.LogError("Clear Save error: " + e);
         }
+    }
+    public PlayerData GetData()
+    {
+        return m_playerData;
     }
 }

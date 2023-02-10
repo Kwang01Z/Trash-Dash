@@ -28,10 +28,6 @@ namespace SPStudios.Tools {
                 Singletons.RegisterSingleton(GetType(), this);
             }
             OnInitOrAwake();
-            /*if(Singletons.Get(GetType()) != (ISingleton)this) {
-                BroadcastErrorMessage(MULTIPLE_SINGLETON_ERROR, GetType().Name.ToString());
-                *//*Destroy(gameObject);*//*
-            }*/
         }
 
         /// <summary>

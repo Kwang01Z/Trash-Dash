@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SPStudios.Tools;
-public class GameController : PersistentMonoSingleton
+public class GameController : ReRegisterMonoSingleton
 {
     private void Start()
     {
