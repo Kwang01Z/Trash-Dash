@@ -80,4 +80,26 @@ public class MissionBase : System.IComparable<MissionBase>
         }
         return new MissionBase();
     }
+    public void RunStart(TrackManager manager)
+    {
+        switch (missionType)
+        {
+            case MissionType.SINGLE_RUN:
+                progress = 0;
+                break;
+            case MissionType.PICKUP:
+                manager.previousCoinAmount = 0;
+                break;
+            case MissionType.OBSTACLE_JUMP:
+                manager.m_Previous = null;
+                manager.m_Hits = new Collider[manager.k_HitColliderCount];
+                break;
+            case MissionType.SLIDING:
+                manager.m_PreviousWorldDist = manager.worldDistance;
+                break;
+            case MissionType.MULTIPLIER:
+                progress = 0;
+                break;
+        }
+    }
 }

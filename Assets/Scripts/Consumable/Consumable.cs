@@ -44,7 +44,7 @@ public abstract class Consumable : MonoBehaviour
     {
         m_SinceStart = 0;
     }
-/*
+
     //override this to do test to make a consumable not usable (e.g. used by the ExtraLife to avoid using it when at full health)
     public virtual bool CanBeUsed(CharacterInputController c)
     {
@@ -55,13 +55,13 @@ public abstract class Consumable : MonoBehaviour
     {
         m_SinceStart = 0;
 
-		if (activatedSound != null)
-		{
-			c.powerupSource.clip = activatedSound;
-			c.powerupSource.Play();
-		}
+        if (activatedSound != null)
+        {
+            c.powerupSource.clip = activatedSound;
+            c.powerupSource.Play();
+        }
 
-        if(ActivatedParticleReference != null)
+        if (ActivatedParticleReference != null)
         {
             //Addressables 1.0.1-preview
             var op = ActivatedParticleReference.InstantiateAsync();
@@ -73,7 +73,7 @@ public abstract class Consumable : MonoBehaviour
             m_ParticleSpawned.transform.SetParent(c.characterCollider.transform);
             m_ParticleSpawned.transform.localPosition = op.Result.transform.position;
         }
-	}
+    }
 
     IEnumerator TimedRelease(GameObject obj, float time)
     {
@@ -111,5 +111,5 @@ public abstract class Consumable : MonoBehaviour
                 c.powerupSource.Play();
             }
         }
-    }*/
+    }
 }

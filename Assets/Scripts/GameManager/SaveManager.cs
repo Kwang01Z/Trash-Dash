@@ -14,6 +14,8 @@ public class SaveManager : ReRegisterMonoSingleton
     {
         base.OnInitOrAwake();
         LoadOrCreateNewData();
+        StartCoroutine(ThemeDatabase.LoadDatabase());
+        StartCoroutine(CharacterDatabase.LoadDatabase());
     }
     public void Save()
     {

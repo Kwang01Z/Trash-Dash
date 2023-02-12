@@ -155,4 +155,20 @@ public class PlayerData
         }
         return accessoryList;
     }
+    public void StartRunMissions(TrackManager manager)
+    {
+        for (int i = 0; i < missions.Count; ++i)
+        {
+            missions[i].RunStart(manager);
+        }
+    }
+    public void Add(Consumable.ConsumableType type)
+    {
+        if (!consumables.ContainsKey(type))
+        {
+            consumables[type] = 0;
+        }
+
+        consumables[type] += 1;
+    }
 }
