@@ -7,7 +7,7 @@ using UnityEngine.AddressableAssets;
 using SPStudios.Tools;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
-public class TrackManager : MonoBehaviour
+public class TrackManager : ReRegisterMonoSingleton
 {
     static int s_StartHash = Animator.StringToHash("Start");
 
@@ -19,7 +19,7 @@ public class TrackManager : MonoBehaviour
     [SerializeField] float minSpeed = 5.0f;
     [SerializeField] float maxSpeed = 10.0f;
     [SerializeField] int speedStep = 4;
-    [SerializeField] float laneOffset = 1.0f;
+    [SerializeField] public float laneOffset = 1.0f;
     [SerializeField] bool invincible = false;
 
     [Header("Objects")]
@@ -30,8 +30,16 @@ public class TrackManager : MonoBehaviour
     [SerializeField] Transform parallaxRoot;
     [SerializeField] float parallaxRatio = 0.5f;
 
+    [Header("Segments and Obstacles")]
+    [SerializeField] public Transform segmentsPooler;
+    [SerializeField] public Transform obstaclesPooler;
+
+    [Header("Items")]
+    [SerializeField] public Transform itemsPooler;
+
     [Header("Tutorial")]
     [SerializeField] ThemeData tutorialThemeData;
+
 
     public Action<TrackSegment> newSegmentCreated;
     public Action<TrackSegment> currentSegementChanged;
@@ -97,7 +105,7 @@ public class TrackManager : MonoBehaviour
     protected const float k_CountdownSpeed = 1.5f;
     protected const float k_StartingSegmentDistance = 2f;
     protected const int k_StartingSafeSegments = 2;
-    protected const int k_StartingCoinPoolSize = 256;
+    protected const int k_StartingCoinPoolSize = 10;
     protected const int k_DesiredSegmentCount = 10;
     protected const float k_SegmentRemovalDistance = -30f;
     protected const float k_Acceleration = 0.2f;
@@ -115,7 +123,7 @@ public class TrackManager : MonoBehaviour
     [HideInInspector] public float m_PreviousWorldDist;
 
     PlayerData m_PlayerData;
-    protected void Awake()
+    protected override void OnInitOrAwake()
     {
         m_ScoreAccum = 0.0f;
     }
@@ -220,10 +228,9 @@ public class TrackManager : MonoBehaviour
             m_Score = 0;
             m_ScoreAccum = 0;
 
-            m_SafeSegementLeft = m_IsTutorial ? 0 : k_StartingSafeSegments;
+            m_SafeSegementLeft = m_IsTutorial ? 2 : k_StartingSafeSegments;
 
-            Coin.coinPool = new Pooler(currentTheme.collectiblePrefab, k_StartingCoinPoolSize);
-
+            Coin.coinPool = new Pooler(itemsPooler,currentTheme.collectiblePrefab, k_StartingCoinPoolSize);
             m_PlayerData.StartRunMissions(this);
         }
         m_characterController.Begin();
@@ -277,15 +284,16 @@ public class TrackManager : MonoBehaviour
     private int _spawnedSegments = 0;
     void Update()
     {
+        if (!isLoaded) return;
         while (_spawnedSegments < (m_IsTutorial ? 4 : k_DesiredSegmentCount))
         {
             StartCoroutine(SpawnNewSegment());
             _spawnedSegments++;
         }
-
-        if (parallaxRoot != null && currentTheme.cloudPrefabs.Length > 0)
+        // Spawn clouds
+        if (parallaxRoot != null && m_CurrentThemeData.cloudPrefabs.Length > 0)
         {
-            while (_parallaxRootChildren < currentTheme.cloudNumber)
+            while (_parallaxRootChildren < m_CurrentThemeData.cloudNumber)
             {
                 float lastZ = parallaxRoot.childCount == 0 ? 0 : parallaxRoot.GetChild(parallaxRoot.childCount - 1).position.z + currentTheme.cloudMinimumDistance.z;
 
@@ -314,7 +322,6 @@ public class TrackManager : MonoBehaviour
 
         float scaledSpeed = m_Speed * Time.deltaTime;
         m_ScoreAccum += scaledSpeed;
-        m_CurrentZoneDistance += scaledSpeed;
 
         int intScore = Mathf.FloorToInt(m_ScoreAccum);
         if (intScore != 0) AddScore(intScore);
@@ -322,6 +329,7 @@ public class TrackManager : MonoBehaviour
 
         m_TotalWorldDistance += scaledSpeed;
         m_CurrentSegmentDistance += scaledSpeed;
+        m_CurrentZoneDistance += scaledSpeed;
 
         if (m_CurrentSegmentDistance > m_Segments[0].worldLength)
         {
@@ -407,7 +415,7 @@ public class TrackManager : MonoBehaviour
         }
 
         PowerupSpawnUpdate();
-
+        // Fix speed
         if (!m_IsTutorial)
         {
             if (m_Speed < maxSpeed)
@@ -437,9 +445,11 @@ public class TrackManager : MonoBehaviour
             }
 
             PlayerData.instance.UpdateMissions(this);
-        }
+        }*/
+        if (!m_IsTutorial)
+            m_PlayerData.UpdateAllMission(this);
 
-        MusicPlayer.instance.UpdateVolumes(speedRatio);*/
+        /*MusicPlayer.instance.UpdateVolumes(speedRatio);*/
     }
 
     public void PowerupSpawnUpdate()
@@ -465,19 +475,19 @@ public class TrackManager : MonoBehaviour
             if (m_CurrentThemeData.zones[m_CurrentZone].length < m_CurrentZoneDistance)
                 ChangeZone();
         }
-
         int segmentUse = Random.Range(0, m_CurrentThemeData.zones[m_CurrentZone].prefabList.Length);
+        
         if (segmentUse == m_PreviousSegment) segmentUse = (segmentUse + 1) % m_CurrentThemeData.zones[m_CurrentZone].prefabList.Length;
-
+        print(segmentUse);
         AsyncOperationHandle segmentToUseOp = m_CurrentThemeData.zones[m_CurrentZone].prefabList[segmentUse].InstantiateAsync(_offScreenSpawnPos, Quaternion.identity);
         yield return segmentToUseOp;
         if (segmentToUseOp.Result == null || !(segmentToUseOp.Result is GameObject))
         {
-            Debug.LogWarning(string.Format("Unable to load segment {0}.", m_CurrentThemeData.zones[m_CurrentZone].prefabList[segmentUse].Asset.name));
+            Debug.LogError(string.Format("Unable to load segment {0}.", m_CurrentThemeData.zones[m_CurrentZone].prefabList[segmentUse].Asset.name));
             yield break;
         }
+        
         TrackSegment newSegment = (segmentToUseOp.Result as GameObject).GetComponent<TrackSegment>();
-
         Vector3 currentExitPoint;
         Quaternion currentExitRotation;
         if (m_Segments.Count > 0)
@@ -504,16 +514,18 @@ public class TrackManager : MonoBehaviour
         newSegment.transform.localScale = new Vector3((Random.value > 0.5f ? -1 : 1), 1, 1);
         newSegment.objectRoot.localScale = new Vector3(1.0f / newSegment.transform.localScale.x, 1, 1);
 
-        if (m_SafeSegementLeft <= 0)
+        if (m_SafeSegementLeft <= 0 && newSegment != null)
         {
             SpawnObstacle(newSegment);
         }
         else
+        {
             m_SafeSegementLeft -= 1;
-
+        }
+        newSegment.transform.parent = segmentsPooler;
         m_Segments.Add(newSegment);
-
         if (newSegmentCreated != null) newSegmentCreated.Invoke(newSegment);
+        else Debug.LogError("newSegmentCreated null");
     }
 
 
@@ -527,12 +539,12 @@ public class TrackManager : MonoBehaviour
                 StartCoroutine(SpawnFromAssetReference(assetRef, segment, i));
             }
         }
-
         StartCoroutine(SpawnCoinAndPowerup(segment));
     }
 
     private IEnumerator SpawnFromAssetReference(AssetReference reference, TrackSegment segment, int posIndex)
     {
+        
         AsyncOperationHandle op = Addressables.LoadAssetAsync<GameObject>(reference);
         yield return op;
         GameObject obj = op.Result as GameObject;
@@ -540,10 +552,11 @@ public class TrackManager : MonoBehaviour
         {
             Obstacle obstacle = obj.GetComponent<Obstacle>();
             if (obstacle != null)
+            {
                 yield return obstacle.Spawn(segment, segment.obstaclePositions[posIndex]);
+            }
         }
     }
-
     public IEnumerator SpawnCoinAndPowerup(TrackSegment segment)
     {
         if (!m_IsTutorial)
@@ -553,14 +566,13 @@ public class TrackManager : MonoBehaviour
             int currentLane = Random.Range(0, 3);
 
             float powerupChance = Mathf.Clamp01(Mathf.Floor(m_TimeSincePowerup) * 0.5f * 0.001f);
-            float premiumChance = Mathf.Clamp01(Mathf.Floor(m_TimeSinceLastPremium) * 0.5f * 0.0001f);
+            float premiumChance = Mathf.Clamp01(Mathf.Floor(m_TimeSinceLastPremium) * 0.5f * 0.0005f);
 
             while (currentWorldPos < segment.worldLength)
             {
                 Vector3 pos;
                 Quaternion rot;
                 segment.GetPointAtInWorldUnit(currentWorldPos, out pos, out rot);
-
 
                 bool laneValid = true;
                 int testedLane = currentLane;
@@ -594,6 +606,11 @@ public class TrackManager : MonoBehaviour
                             m_TimeSincePowerup = 0.0f;
                             powerupChance = 0.0f;
 
+                            /*if (!ConsumablePooler.Get(segment.collectibleTransform,consumableDatabase.consumbales[picked].GetConsumableType(), pos, rot))
+                            {
+                                
+                                ConsumablePooler.Add(consumableDatabase.consumbales[picked].GetConsumableType(),toUse);
+                            }*/
                             AsyncOperationHandle op = Addressables.InstantiateAsync(consumableDatabase.consumbales[picked].gameObject.name, pos, rot);
                             yield return op;
                             if (op.Result == null || !(op.Result is GameObject))
@@ -602,7 +619,7 @@ public class TrackManager : MonoBehaviour
                                 yield break;
                             }
                             toUse = op.Result as GameObject;
-                            toUse.transform.SetParent(segment.transform, true);
+                            toUse.transform.SetParent(segment.objectRoot, true);
                         }
                     }
                     else if (Random.value < premiumChance)
@@ -618,21 +635,21 @@ public class TrackManager : MonoBehaviour
                             yield break;
                         }
                         toUse = op.Result as GameObject;
-                        toUse.transform.SetParent(segment.transform, true);
+                        toUse.transform.SetParent(segment.objectRoot, true);
                     }
                     else
                     {
-                        toUse = Coin.coinPool.Get(pos, rot);
-                        toUse.transform.SetParent(segment.collectibleTransform, true);
+                        if (segment.collectibleTransform == null) print("segment.collectibleTransform null");
+                        toUse = Coin.coinPool.Get(segment.collectibleTransform, pos, rot);
                     }
 
-                    if (toUse != null)
+                    /*if (toUse != null)
                     {
                         //TODO : remove that hack related to #issue7
                         Vector3 oldPos = toUse.transform.position;
                         toUse.transform.position += Vector3.back;
                         toUse.transform.position = oldPos;
-                    }
+                    }*/
                 }
 
                 currentWorldPos += increment;
@@ -642,7 +659,6 @@ public class TrackManager : MonoBehaviour
 
     public void AddScore(int amount)
     {
-        int finalAmount = amount;
-        m_Score += finalAmount * m_Multiplier;
+        m_Score += amount * m_Multiplier;
     }
 }

@@ -43,6 +43,7 @@ public class PlayerData
         _newData.CheckMissionCount();
         _newData.coins = 10000;
         _newData.premium = 10;
+        _newData.isTutorialDone = true;
         _newData.consumables.Add(Consumable.ConsumableType.EXTRALIFE, 1);
         /*_newData.accessories.Add("TrashCat:");*/
         return _newData;
@@ -170,5 +171,12 @@ public class PlayerData
         }
 
         consumables[type] += 1;
+    }
+    public void UpdateAllMission(TrackManager track)
+    {
+        foreach (MissionBase mission in missions)
+        {
+            mission.UpdateMission(track);
+        }
     }
 }

@@ -102,4 +102,56 @@ public class MissionBase : System.IComparable<MissionBase>
                 break;
         }
     }
+    public void UpdateMission(TrackManager manager)
+    {
+        switch (missionType)
+        {
+            case MissionType.SINGLE_RUN:
+                progress = manager.worldDistance;
+                break;
+            case MissionType.PICKUP:
+                int coins = manager.characterController.coins - manager.previousCoinAmount;
+                progress += coins;
+
+                manager.previousCoinAmount = manager.characterController.coins;
+                break;
+            case MissionType.OBSTACLE_JUMP:
+                if (manager.characterController.isJumping)
+                {
+                    Vector3 boxSize = manager.characterController.characterCollider.collider.size + manager.k_CharacterColliderSizeOffset;
+                    Vector3 boxCenter = manager.characterController.transform.position - Vector3.up * boxSize.y * 0.5f;
+
+                    int count = Physics.OverlapBoxNonAlloc(boxCenter, boxSize * 0.5f, manager.m_Hits);
+
+                    for (int i = 0; i < count; ++i)
+                    {
+                        Obstacle obs = manager.m_Hits[i].GetComponent<Obstacle>();
+
+                        if (obs != null && obs is AllLaneObstacle)
+                        {
+                            if (obs != manager.m_Previous)
+                            {
+                                progress += 1;
+                            }
+
+                            manager.m_Previous = obs;
+                        }
+                    }
+                }
+                break;
+            case MissionType.SLIDING:
+                if (manager.characterController.isSliding)
+                {
+                    float dist = manager.worldDistance - manager.m_PreviousWorldDist;
+                    progress += dist;
+                }
+
+                manager.m_PreviousWorldDist = manager.worldDistance;
+                break;
+            case MissionType.MULTIPLIER:
+                if (manager.multiplier > progress)
+                    progress = manager.multiplier;
+                break;
+        }
+    }
 }

@@ -43,7 +43,6 @@ public class GamePlayManager : MonoBehaviour
 
         m_Finished = false;
         m_PowerupIcons.Clear();
-        if (trackManager != null) print("not null");
         StartCoroutine(trackManager.Begin(this));
     }
     

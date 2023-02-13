@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -10,9 +10,9 @@ public abstract class Obstacle : MonoBehaviour
 {
 	public AudioClip impactedSound;
 
-	public virtual void Setup() { }
+    public virtual void Setup() {}
 
-	public abstract IEnumerator Spawn(TrackSegment segment, float t);
+    public abstract IEnumerator Spawn(TrackSegment segment, float t);
 
 	public virtual void Impacted()
 	{

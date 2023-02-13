@@ -36,6 +36,8 @@ public class TrackSegment : MonoBehaviour
         obj = new GameObject("Collectibles");
         obj.transform.SetParent(objectRoot);
         collectibleTransform = obj.transform;
+        obstaclePositions = new float[1];
+        obstaclePositions[0] = 0.5f;
     }
 
     // Same as GetPointAt but using an interpolation parameter in world units instead of 0 to 1.
@@ -84,11 +86,10 @@ public class TrackSegment : MonoBehaviour
 
     public void Cleanup()
     {
-        while (collectibleTransform.childCount > 0)
+        for (int i = 0; i < collectibleTransform.childCount; i++)
         {
-            Transform t = collectibleTransform.GetChild(0);
-            t.SetParent(null);
-            Coin.coinPool.Free(t.gameObject);
+            Transform t = collectibleTransform.GetChild(i);
+            Coin.coinPool.Free(manager.itemsPooler,t.gameObject);
         }
 
         Addressables.ReleaseInstance(gameObject);
@@ -141,7 +142,7 @@ class TrackSegmentEditor : Editor
 
         if (GUILayout.Button("Add obstacles"))
         {
-            ArrayUtility.Add(ref m_Segment.obstaclePositions, 0.0f);
+            ArrayUtility.Add(ref m_Segment.obstaclePositions, 0.5f);
         }
 
         if (m_Segment.obstaclePositions != null)
