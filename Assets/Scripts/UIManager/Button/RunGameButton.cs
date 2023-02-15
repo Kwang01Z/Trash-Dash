@@ -20,7 +20,6 @@ public class RunGameButton : MonoBehaviour
     }
     private void RunPressed()
     {
-        Singletons.Get<SaveManager>().GetData().isTutorialDone = true;
         Singletons.Get<SaveManager>().Save();
         Singletons.Get<GameController>().LoadScence("RunGame");
     }

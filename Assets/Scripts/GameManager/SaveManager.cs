@@ -62,8 +62,22 @@ public class SaveManager : ReRegisterMonoSingleton
             }
         }  
     }
+#if UNITY_EDITOR
     [MenuItem("Trash Dash Data Editor/Clear Save")]
     public static void ClearSave()
+    {
+        Debug.Log("Clear Save!");
+        try
+        {
+            File.Delete(Application.persistentDataPath + "/Player.dat");
+        }
+        catch (SerializationException e)
+        {
+            Debug.LogError("Clear Save error: " + e);
+        }
+    }
+#endif
+    public static void ClearAllSave()
     {
         Debug.Log("Clear Save!");
         try

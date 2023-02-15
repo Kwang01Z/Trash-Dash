@@ -104,7 +104,7 @@ public class TrackManager : ReRegisterMonoSingleton
     protected const float k_CountdownToStartLength = 5f;
     protected const float k_CountdownSpeed = 1.5f;
     protected const float k_StartingSegmentDistance = 2f;
-    protected const int k_StartingSafeSegments = 2;
+    protected const int k_StartingSafeSegments = 1;
     protected const int k_StartingCoinPoolSize = 10;
     protected const int k_DesiredSegmentCount = 10;
     protected const float k_SegmentRemovalDistance = -30f;
@@ -122,7 +122,8 @@ public class TrackManager : ReRegisterMonoSingleton
     //for sliding Mission
     [HideInInspector] public float m_PreviousWorldDist;
 
-    PlayerData m_PlayerData;
+    public PlayerData m_PlayerData;
+    public GamePlayManager m_gamePlay;
     protected override void OnInitOrAwake()
     {
         m_ScoreAccum = 0.0f;
@@ -167,6 +168,7 @@ public class TrackManager : ReRegisterMonoSingleton
 
     public IEnumerator Begin(GamePlayManager manager)
     {
+        m_gamePlay = manager;
         m_PlayerData = manager.PlayerData;
         if (!m_Rerun)
         {
@@ -201,13 +203,12 @@ public class TrackManager : ReRegisterMonoSingleton
             m_characterController.character = player;
             m_characterController.trackManager = this;
 
-            m_characterController.Init();
+            m_characterController.Init(this);
             m_characterController.CheatInvincible(invincible);
 
             //Instantiate(CharacterDatabase.GetCharacter(PlayerData.instance.characters[PlayerData.instance.usedCharacter]), Vector3.zero, Quaternion.identity);
             player.transform.SetParent(m_characterController.characterCollider.transform, false);
             Camera.main.transform.SetParent(m_characterController.transform, true);
-
             if (m_IsTutorial)
                 m_CurrentThemeData = tutorialThemeData;
             else
@@ -228,7 +229,7 @@ public class TrackManager : ReRegisterMonoSingleton
             m_Score = 0;
             m_ScoreAccum = 0;
 
-            m_SafeSegementLeft = m_IsTutorial ? 2 : k_StartingSafeSegments;
+            m_SafeSegementLeft = m_IsTutorial ? 0 : k_StartingSafeSegments;
 
             Coin.coinPool = new Pooler(itemsPooler,currentTheme.collectiblePrefab, k_StartingCoinPoolSize);
             m_PlayerData.StartRunMissions(this);
@@ -236,48 +237,10 @@ public class TrackManager : ReRegisterMonoSingleton
         m_characterController.Begin();
         StartCoroutine(WaitToStart());
         isLoaded = true;
+        Debug.Log("Track Manager was loaded successfull");
     }
 
-    public void End()
-    {
-        foreach (TrackSegment seg in m_Segments)
-        {
-            Addressables.ReleaseInstance(seg.gameObject);
-            _spawnedSegments--;
-        }
-
-        for (int i = 0; i < m_PastSegments.Count; ++i)
-        {
-            Addressables.ReleaseInstance(m_PastSegments[i].gameObject);
-        }
-
-        m_Segments.Clear();
-        m_PastSegments.Clear();
-
-        m_characterController.End();
-
-        gameObject.SetActive(false);
-        Addressables.ReleaseInstance(m_characterController.character.gameObject);
-        m_characterController.character = null;
-
-        Camera.main.transform.SetParent(null);
-        Camera.main.transform.position = m_CameraOriginalPos;
-
-        m_characterController.gameObject.SetActive(false);
-
-        for (int i = 0; i < parallaxRoot.childCount; ++i)
-        {
-            _parallaxRootChildren--;
-            Destroy(parallaxRoot.GetChild(i).gameObject);
-        }
-
-        //if our consumable wasn't used, we put it back in our inventory
-        if (m_characterController.inventory != null)
-        {
-            m_PlayerData.Add(m_characterController.inventory.GetConsumableType());
-            m_characterController.inventory = null;
-        }
-    }
+   
 
 
     private int _parallaxRootChildren = 0;
@@ -334,14 +297,15 @@ public class TrackManager : ReRegisterMonoSingleton
         if (m_CurrentSegmentDistance > m_Segments[0].worldLength)
         {
             m_CurrentSegmentDistance -= m_Segments[0].worldLength;
-
             // m_PastSegments are segment we already passed, we keep them to move them and destroy them later 
             // but they aren't part of the game anymore 
             m_PastSegments.Add(m_Segments[0]);
             m_Segments.RemoveAt(0);
             _spawnedSegments--;
-
-            if (currentSegementChanged != null) currentSegementChanged.Invoke(m_Segments[0]);
+            if (currentSegementChanged != null)
+            {
+                currentSegementChanged.Invoke(m_Segments[0]);
+            } 
         }
 
         Vector3 currentPos;
@@ -434,22 +398,10 @@ public class TrackManager : ReRegisterMonoSingleton
             }
         }
 
-        /*if (!m_IsTutorial)
-        {
-            //check for next rank achieved
-            int currentTarget = (PlayerData.instance.rank + 1) * 300;
-            if (m_TotalWorldDistance > currentTarget)
-            {
-                PlayerData.instance.rank += 1;
-                PlayerData.instance.Save();
-            }
-
-            PlayerData.instance.UpdateMissions(this);
-        }*/
         if (!m_IsTutorial)
             m_PlayerData.UpdateAllMission(this);
 
-        /*MusicPlayer.instance.UpdateVolumes(speedRatio);*/
+        Singletons.Get<MusicPlayer>().UpdateVolumes(speedRatio);
     }
 
     public void PowerupSpawnUpdate()
@@ -478,7 +430,6 @@ public class TrackManager : ReRegisterMonoSingleton
         int segmentUse = Random.Range(0, m_CurrentThemeData.zones[m_CurrentZone].prefabList.Length);
         
         if (segmentUse == m_PreviousSegment) segmentUse = (segmentUse + 1) % m_CurrentThemeData.zones[m_CurrentZone].prefabList.Length;
-        print(segmentUse);
         AsyncOperationHandle segmentToUseOp = m_CurrentThemeData.zones[m_CurrentZone].prefabList[segmentUse].InstantiateAsync(_offScreenSpawnPos, Quaternion.identity);
         yield return segmentToUseOp;
         if (segmentToUseOp.Result == null || !(segmentToUseOp.Result is GameObject))
@@ -525,7 +476,6 @@ public class TrackManager : ReRegisterMonoSingleton
         newSegment.transform.parent = segmentsPooler;
         m_Segments.Add(newSegment);
         if (newSegmentCreated != null) newSegmentCreated.Invoke(newSegment);
-        else Debug.LogError("newSegmentCreated null");
     }
 
 
@@ -606,11 +556,6 @@ public class TrackManager : ReRegisterMonoSingleton
                             m_TimeSincePowerup = 0.0f;
                             powerupChance = 0.0f;
 
-                            /*if (!ConsumablePooler.Get(segment.collectibleTransform,consumableDatabase.consumbales[picked].GetConsumableType(), pos, rot))
-                            {
-                                
-                                ConsumablePooler.Add(consumableDatabase.consumbales[picked].GetConsumableType(),toUse);
-                            }*/
                             AsyncOperationHandle op = Addressables.InstantiateAsync(consumableDatabase.consumbales[picked].gameObject.name, pos, rot);
                             yield return op;
                             if (op.Result == null || !(op.Result is GameObject))
@@ -643,13 +588,6 @@ public class TrackManager : ReRegisterMonoSingleton
                         toUse = Coin.coinPool.Get(segment.collectibleTransform, pos, rot);
                     }
 
-                    /*if (toUse != null)
-                    {
-                        //TODO : remove that hack related to #issue7
-                        Vector3 oldPos = toUse.transform.position;
-                        toUse.transform.position += Vector3.back;
-                        toUse.transform.position = oldPos;
-                    }*/
                 }
 
                 currentWorldPos += increment;
@@ -660,5 +598,54 @@ public class TrackManager : ReRegisterMonoSingleton
     public void AddScore(int amount)
     {
         m_Score += amount * m_Multiplier;
+    }
+    public void UpdateInventoryUsing(GamePlayManager manager)
+    {
+        // Consumable ticking & lifetime management
+        List<Consumable> toRemove = new List<Consumable>();
+        List<PowerupIcon> toRemoveIcon = new List<PowerupIcon>();
+        for (int i = 0; i < m_characterController.consumables.Count; ++i)
+        {
+            PowerupIcon icon = null;
+            for (int j = 0; j < manager.m_PowerupIcons.Count; ++j)
+            {
+                if (manager.m_PowerupIcons[j].linkedConsumable == m_characterController.consumables[i])
+                {
+                    icon = manager.m_PowerupIcons[j];
+                    break;
+                }
+            }
+
+            m_characterController.consumables[i].Tick(m_characterController);
+            if (!m_characterController.consumables[i].active)
+            {
+                toRemove.Add(m_characterController.consumables[i]);
+                toRemoveIcon.Add(icon);
+            }
+            else if (icon == null)
+            {
+                // If there's no icon for the active consumable, create it!
+                GameObject o = Instantiate(manager.m_wholeLayout.PowerupIconPrefab);
+
+                icon = o.GetComponent<PowerupIcon>();
+
+                icon.linkedConsumable = m_characterController.consumables[i];
+                icon.transform.SetParent(manager.m_wholeLayout.powerupZone, false);
+
+                manager.m_PowerupIcons.Add(icon);
+            }
+        }
+
+        for (int i = 0; i < toRemove.Count; ++i)
+        {
+            toRemove[i].Ended(characterController);
+
+            Addressables.ReleaseInstance(toRemove[i].gameObject);
+            if (toRemoveIcon[i] != null)
+                Destroy(toRemoveIcon[i].gameObject);
+
+            m_characterController.consumables.Remove(toRemove[i]);
+            manager.m_PowerupIcons.Remove(toRemoveIcon[i]);
+        }
     }
 }

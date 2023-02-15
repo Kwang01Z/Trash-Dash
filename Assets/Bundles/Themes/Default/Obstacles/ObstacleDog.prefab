@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 114000010466800254}
   - component: {fileID: 136000012872324984}
   - component: {fileID: 82000013865502162}
-  - component: {fileID: 114361107942662600}
   m_Layer: 9
   m_Name: ObstacleDog
   m_TagString: Untagged
@@ -165,23 +164,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
---- !u!114 &114361107942662600
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1000010446287116}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0270d17b9d0a6a743a1b997c2aa20be1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  impactedSound: {fileID: 8300000, guid: a9ca43e15a6013b43af5e7c96fe909f5, type: 3}
-  animator: {fileID: 95000012542064004}
-  movingSound:
-  - {fileID: 8300000, guid: a274514c3e79a214192d637691738dea, type: 3}
-  - {fileID: 8300000, guid: fa9008d188552c84b99adb204f504fbf, type: 3}
 --- !u!1 &1000012151388900
 GameObject:
   m_ObjectHideFlags: 0

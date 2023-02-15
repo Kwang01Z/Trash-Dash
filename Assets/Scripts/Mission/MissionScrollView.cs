@@ -5,6 +5,7 @@ using frame8.ScrollRectItemsAdapter.Classic;
 using TMPro;
 using SPStudios.Tools;
 using System;
+using UnityEngine.UI;
 
 public class MissionScrollView : ClassicSRIA<MissionHolder>
 {
@@ -54,8 +55,26 @@ public class MissionScrollView : ClassicSRIA<MissionHolder>
     {
         var model = Data[vh.ItemIndex];
         vh.desc.SetText(model.desc);
-        vh.progress.SetText(model.progress + "/" + model.max);
+        vh.progress.SetText(Math.Floor(model.progress) + "/" + model.max);
         vh.reward.SetText(model.reward.ToString());
+        if (model.progress >= model.max)
+        {
+            vh.claimButton.onClick.AddListener(delegate { ClaimReward(model); });
+            vh.claimButton.image.color = new Color(1, 1, 1, 1);
+            
+        }
+        else
+        {
+            vh.claimButton.onClick.RemoveListener(delegate { ClaimReward(model); });
+            vh.claimButton.image.color = new Color(0.5f,0.5f,0.5f,0.5f);
+        }
+        
+    }
+    void ClaimReward(MissionBase mission)
+    {
+        m_playerData.ClaimMission(mission);
+        m_playerData.CheckMissionCount();
+        ChangeModelsAndReset(m_playerData.missions.Count);
     }
 }
 public class MissionHolder : CAbstractViewsHolder
@@ -63,11 +82,13 @@ public class MissionHolder : CAbstractViewsHolder
     public TextMeshProUGUI desc;
     public TextMeshProUGUI progress;
     public TextMeshProUGUI reward;
+    public Button claimButton;
     public override void CollectViews()
     {
         base.CollectViews();
         desc = root.Find("Image").Find("Desc").GetComponent<TextMeshProUGUI>();
         progress = root.Find("Image").Find("Reward").Find("Progress").GetComponent<TextMeshProUGUI>();
         reward = root.Find("Image").Find("Reward").Find("RewardTxt").GetComponent<TextMeshProUGUI>();
+        claimButton = root.Find("Image").Find("ClaimButton").GetComponent<Button>();
     }
 }

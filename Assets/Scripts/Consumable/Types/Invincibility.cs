@@ -23,8 +23,8 @@ public class Invincibility : Consumable
 	{
 		return 5;
 	}
-/*
-	public override void Tick(CharacterInputController c)
+
+    public override void Tick(CharacterInputController c)
     {
         base.Tick(c);
 
@@ -41,5 +41,5 @@ public class Invincibility : Consumable
     {
         base.Ended(c);
         c.characterCollider.SetInvincibleExplicit(false);
-    }*/
+    }
 }

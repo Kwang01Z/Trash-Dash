@@ -28,21 +28,21 @@ public class CoinMagnet : Consumable
 
 	protected Collider[] returnColls = new Collider[20];
 
-	/*public override void Tick(CharacterInputController c)
+    public override void Tick(CharacterInputController c)
     {
         base.Tick(c);
 
         int nb = Physics.OverlapBoxNonAlloc(c.characterCollider.transform.position, k_HalfExtentsBox, returnColls, c.characterCollider.transform.rotation, k_LayerMask);
 
-        for(int i = 0; i< nb; ++i)
+        for (int i = 0; i < nb; ++i)
         {
-			Coin returnCoin = returnColls[i].GetComponent<Coin>();
+            Coin returnCoin = returnColls[i].GetComponent<Coin>();
 
-			if (returnCoin != null && !returnCoin.isPremium && !c.characterCollider.magnetCoins.Contains(returnCoin.gameObject))
-			{
-				returnColls[i].transform.SetParent(c.transform);
-				c.characterCollider.magnetCoins.Add(returnColls[i].gameObject);
-			}
-		}
-    }*/
+            if (returnCoin != null && !returnCoin.isPremium && !c.characterCollider.magnetCoins.Contains(returnCoin.gameObject))
+            {
+                returnColls[i].transform.SetParent(c.transform);
+                c.characterCollider.magnetCoins.Add(returnColls[i].gameObject);
+            }
+        }
+    }
 }

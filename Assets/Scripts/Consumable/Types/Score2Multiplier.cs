@@ -23,8 +23,8 @@ public class Score2Multiplier : Consumable
 	{
 		return 0;
 	}
-/*
-	public override IEnumerator Started(CharacterInputController c)
+
+    public override IEnumerator Started(CharacterInputController c)
     {
         yield return base.Started(c);
 
@@ -38,7 +38,7 @@ public class Score2Multiplier : Consumable
         base.Ended(c);
 
         c.trackManager.modifyMultiply -= MultiplyModify;
-    }*/
+    }
 
     protected int MultiplyModify(int multi)
     {

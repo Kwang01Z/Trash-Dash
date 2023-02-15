@@ -6,61 +6,82 @@ using TMPro;
 using SPStudios.Tools;
 public class AccessoriesZone : ZoneSelectorBase
 {
-    [SerializeField] TextMeshProUGUI m_accessoryName;
     [SerializeField] Image m_accessoryIcon;
-    Character m_character;
-    public GameObject m_ObjChar;
+    [SerializeField] GameObject m_border;
     public List<int> m_OwnedAccesories = new List<int>();
-    public override void LoadDatabase()
-    {
-        base.LoadDatabase();
-        m_character = CharacterDatabase.GetCharacter(m_dataPlayer.characters[m_dataPlayer.usedCharacter]);
-    }
+    public GameObject m_Character;
+    bool hideNextButton;
     public override void ValidateData()
     {
         base.ValidateData();
-        if (m_dataPlayer.accessories == null || m_character == null)
+        if (m_dataPlayer.usedAccessory > -1 && m_OwnedAccesories.Count > 0)
         {
-            UpdateCharDisplay();
-            gameObject.SetActive(false);
-            return;
-        }
-        if (m_dataPlayer.usedAccessory <= -1)
-        {
-            m_accessoryName.SetText("");
-            m_accessoryIcon.enabled = false;
+            m_accessoryIcon.enabled = true;
+            m_accessoryIcon.sprite = m_Character.GetComponent<Character>().accessories[m_dataPlayer.usedAccessory].accessoryIcon;
         }
         else
         {
-            m_accessoryIcon.enabled = true;
-            m_accessoryName.SetText(m_character.accessories[m_dataPlayer.usedAccessory].accessoryName);
-            m_accessoryIcon.sprite = m_character.accessories[m_dataPlayer.usedAccessory].accessoryIcon;
+            m_accessoryIcon.enabled = false;
         }
         UpdateCharDisplay();
     }
 
     void UpdateCharDisplay()
     {
-        if (m_ObjChar == null)
+        if (m_Character == null)
             return;
-        m_ObjChar.GetComponent<Character>().SetupAccesory(m_dataPlayer.usedAccessory);
+        m_Character.GetComponent<Character>().SetupAccesory(m_dataPlayer.usedAccessory);
     }
 
     public override void AutoHideButton()
     {
         base.AutoHideButton();
-        m_buttonNext.gameObject.SetActive(m_dataPlayer.usedAccessory < m_OwnedAccesories.Count - 1 && m_dataPlayer.accessories.Count > 0);
+        m_buttonNext.gameObject.SetActive(m_dataPlayer.usedAccessory < m_Character.GetComponent<Character>().accessories.Length - 1 && m_OwnedAccesories.Count > 0 && !hideNextButton);
         m_buttonPre.gameObject.SetActive(m_dataPlayer.usedAccessory > -1);
+        m_border.gameObject.SetActive(m_OwnedAccesories.Count > 0);
     }
     public override void ButtonNextPressed()
     {
-        m_dataPlayer.usedAccessory++;
+        if (GetNextAccess(m_dataPlayer.usedAccessory) < m_Character.GetComponent<Character>().accessories.Length)
+        {
+            m_dataPlayer.usedAccessory = GetNextAccess(m_dataPlayer.usedAccessory);
+        }
+        if (GetNextAccess(m_dataPlayer.usedAccessory) >= m_Character.GetComponent<Character>().accessories.Length)
+        {
+            hideNextButton = true;
+        }
         ValidateData();
     }
-
+    int GetNextAccess(int c_access)
+    {
+        int currentAccess = c_access;
+        c_access++;
+        while (!ContainAccessory(c_access) && c_access < m_Character.GetComponent<Character>().accessories.Length)
+        {
+            c_access++;
+        }
+        if (c_access >= m_Character.GetComponent<Character>().accessories.Length)
+        {
+            c_access = currentAccess;
+        }
+        return c_access;
+    }
     public override void ButtonPrePressed()
     {
+        hideNextButton = false;
         m_dataPlayer.usedAccessory--;
+        while (!ContainAccessory(m_dataPlayer.usedAccessory) && m_dataPlayer.usedAccessory > -1)
+        {
+            m_dataPlayer.usedAccessory--;
+        }
         ValidateData();
+    }
+    bool ContainAccessory(int used)
+    {
+        foreach (int i in m_OwnedAccesories)
+        {
+            if (i == used) return true;
+        }
+        return false;
     }
 }

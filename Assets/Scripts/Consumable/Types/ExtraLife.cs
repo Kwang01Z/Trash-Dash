@@ -26,7 +26,7 @@ public class ExtraLife : Consumable
 	{
 		return 5;
 	}
-/*
+
     public override bool CanBeUsed(CharacterInputController c)
     {
         if (c.currentLife == c.maxLife)
@@ -40,7 +40,7 @@ public class ExtraLife : Consumable
         yield return base.Started(c);
         if (c.currentLife < k_MaxLives)
             c.currentLife += 1;
-		else
+        else
             c.coins += k_CoinValue;
-    }*/
+    }
 }

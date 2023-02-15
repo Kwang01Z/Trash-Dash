@@ -112,16 +112,21 @@ public class CharNameZone : ZoneSelectorBase
                     yield return new WaitForEndOfFrame();
                     m_Character.transform.localPosition = Vector3.zero;
 
-                    /*SetupAccessory();*/
+                    m_accessoriesZone.m_OwnedAccesories = m_OwnedAccesories;
+                    m_accessoriesZone.m_Character = m_Character;
+                    m_accessoriesZone.ValidateData();
                 }
                 else
                     yield return new WaitForSeconds(1.0f);
             }
             m_IsLoadingCharacter = false;
         }
-        m_accessoriesZone.m_OwnedAccesories = m_OwnedAccesories;
-        m_accessoriesZone.m_ObjChar = m_Character;
-        m_accessoriesZone.ValidateData();
+        
+    }
+    public void CloseShopEvent()
+    {
+        Destroy(m_Character.gameObject);
+        StartCoroutine(PopulateCharacters());
     }
     public override void OtherUpdate()
     {

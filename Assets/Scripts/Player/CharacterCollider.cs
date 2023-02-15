@@ -10,6 +10,7 @@ using UnityEngine.AddressableAssets;
 [RequireComponent(typeof(AudioSource))]
 public class CharacterCollider : MonoBehaviour
 {
+	static int s_DeadHash = Animator.StringToHash("Dead");
 	static int s_HitHash = Animator.StringToHash("Hit");
 	static int s_BlinkingValueHash;
 
@@ -26,7 +27,7 @@ public class CharacterCollider : MonoBehaviour
 		public float worldDistance;
 	}
 
-	public CharacterInputController controller;
+	CharacterInputController controller;
 
 	public ParticleSystem koParticle;
 
@@ -61,7 +62,7 @@ public class CharacterCollider : MonoBehaviour
 	protected const int k_ObstacleLayerIndex = 9;
 	protected const int k_PowerupLayerIndex = 10;
 	protected const float k_DefaultInvinsibleTime = 2f;
-
+	PlayerData m_playerData;
 	protected void Start()
 	{
 		m_Collider = GetComponent<BoxCollider>();
@@ -69,14 +70,15 @@ public class CharacterCollider : MonoBehaviour
 		m_StartingColliderHeight = m_Collider.bounds.size.y;
 	}
 
-	public void Init()
+	public void Init(CharacterInputController characterInput)
 	{
+		m_playerData = characterInput.trackManager.m_PlayerData;
+		controller = characterInput;
 		koParticle.gameObject.SetActive(false);
 
 		s_BlinkingValueHash = Shader.PropertyToID("_BlinkingValue");
 		m_Invincible = false;
 	}
-
 	public void Slide(bool sliding)
 	{
 		if (sliding)
@@ -99,91 +101,108 @@ public class CharacterCollider : MonoBehaviour
 			magnetCoins[i].transform.position = Vector3.MoveTowards(magnetCoins[i].transform.position, transform.position, k_MagnetSpeed * Time.deltaTime);
 		}
 	}
-/*
-	protected void OnTriggerEnter(Collider c)
-	{
-		if (c.gameObject.layer == k_CoinsLayerIndex)
-		{
-			if (magnetCoins.Contains(c.gameObject))
-				magnetCoins.Remove(c.gameObject);
 
-			if (c.GetComponent<Coin>().isPremium)
-			{
-				Addressables.ReleaseInstance(c.gameObject);
-				PlayerData.instance.premium += 1;
-				controller.premium += 1;
-				m_Audio.PlayOneShot(premiumSound);
-			}
-			else
-			{
-				Coin.coinPool.Free(c.gameObject);
-				PlayerData.instance.coins += 1;
-				controller.coins += 1;
-				m_Audio.PlayOneShot(coinSound);
-			}
-		}
-		else if (c.gameObject.layer == k_ObstacleLayerIndex)
-		{
+    protected void OnTriggerEnter(Collider c)
+    {
+        if (c.gameObject.layer == k_CoinsLayerIndex)
+        {
+            if (magnetCoins.Contains(c.gameObject))
+                magnetCoins.Remove(c.gameObject);
+
+            if (c.GetComponent<Coin>().isPremium)
+            {
+                Addressables.ReleaseInstance(c.gameObject);
+                m_playerData.premium += 1;
+                controller.premium += 1;
+                m_Audio.PlayOneShot(premiumSound);
+            }
+            else
+            {
+                Coin.coinPool.Free(controller.trackManager.itemsPooler,c.gameObject);
+                m_playerData.coins += 1;
+                controller.coins += 1;
+                m_Audio.PlayOneShot(coinSound);
+            }
+        }
+        else if (c.gameObject.layer == k_ObstacleLayerIndex)
+        {
 			if (m_Invincible || controller.IsCheatInvincible())
-				return;
-
+			{
+				c.GetComponent<Collider>().enabled = false;
+                return;
+			}
+			controller.m_TargetPosition.y = 0;
 			controller.StopMoving();
 
 			c.enabled = false;
 
-			Obstacle ob = c.gameObject.GetComponent<Obstacle>();
+            Obstacle ob = c.gameObject.GetComponent<Obstacle>();
 
-			if (ob != null)
-			{
-				ob.Impacted();
-			}
-			else
-			{
-				Addressables.ReleaseInstance(c.gameObject);
-			}
+            if (ob != null)
+            {
+                ob.Impacted();
+            }
+            else
+            {
+                Addressables.ReleaseInstance(c.gameObject);
+            }
 
-			if (TrackManager.instance.isTutorial)
-			{
-				m_TutorialHitObstacle = true;
-			}
-			else
-			{
-				controller.currentLife -= 1;
-			}
+            if (controller.trackManager.isTutorial)
+            {
+                m_TutorialHitObstacle = true;
+            }
+            else
+            {
+                controller.currentLife -= 1;
+            }
 
-			controller.character.animator.SetTrigger(s_HitHash);
+            controller.character.animator.SetTrigger(s_HitHash);
 
-			if (controller.currentLife > 0)
-			{
-				m_Audio.PlayOneShot(controller.character.hitSound);
-				SetInvincible();
-			}
-			// The collision killed the player, record all data to analytics.
-			else
-			{
+            if (controller.currentLife > 0)
+            {
+                m_Audio.PlayOneShot(controller.character.hitSound);
+                SetInvincible();
+				StartCoroutine(ContinueRunning());	
+            }
+            // The collision killed the player, record all data to analytics.
+            else
+            {
+				controller.character.animator.SetBool(s_DeadHash,true);
 				m_Audio.PlayOneShot(controller.character.deathSound);
 
-				m_DeathData.character = controller.character.characterName;
-				m_DeathData.themeUsed = controller.trackManager.currentTheme.themeName;
-				m_DeathData.obstacleType = ob.GetType().ToString();
-				m_DeathData.coins = controller.coins;
-				m_DeathData.premium = controller.premium;
-				m_DeathData.score = controller.trackManager.score;
-				m_DeathData.worldDistance = controller.trackManager.worldDistance;
+                m_DeathData.character = controller.character.characterName;
+                m_DeathData.themeUsed = controller.trackManager.currentTheme.themeName;
+                m_DeathData.obstacleType = ob.GetType().ToString();
+                m_DeathData.coins = controller.coins;
+                m_DeathData.premium = controller.premium;
+                m_DeathData.score = controller.trackManager.score;
+                m_DeathData.worldDistance = controller.trackManager.worldDistance;
 
-			}
-		}
-		else if (c.gameObject.layer == k_PowerupLayerIndex)
-		{
-			Consumable consumable = c.GetComponent<Consumable>();
-			if (consumable != null)
-			{
-				controller.UseConsumable(consumable);
-			}
-		}
-	}*/
-
-	public void SetInvincibleExplicit(bool invincible)
+				if (controller.trackManager.isRerun)
+				{
+					controller.trackManager.m_gamePlay.OpenGameOverLayout();
+				}
+				else
+				{
+					controller.trackManager.m_gamePlay.OpenDeathPopup();
+				}
+            }
+        }
+        else if (c.gameObject.layer == k_PowerupLayerIndex)
+        {
+            Consumable consumable = c.GetComponent<Consumable>();
+            if (consumable != null)
+            {
+                controller.UseConsumable(consumable);
+            }
+        }
+    }
+	IEnumerator ContinueRunning()
+	{
+		yield return new WaitForSeconds(1.5f);
+		controller.trackManager.StartMove();
+	}
+    public void SetInvincibleExplicit(bool invincible)
 	{
 		m_Invincible = invincible;
 	}
@@ -221,7 +240,6 @@ public class CharacterCollider : MonoBehaviour
 		}
 
 		Shader.SetGlobalFloat(s_BlinkingValueHash, 0.0f);
-
 		m_Invincible = false;
 	}
 }

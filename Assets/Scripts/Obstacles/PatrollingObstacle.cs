@@ -51,7 +51,6 @@ public class PatrollingObstacle : Obstacle
         Vector3 oldPos = obj.transform.position;
         obj.transform.position += Vector3.back;
         obj.transform.position = oldPos;
-		obj.transform.parent = segment.manager.obstaclesPooler;
 		po.Setup();
     }
 

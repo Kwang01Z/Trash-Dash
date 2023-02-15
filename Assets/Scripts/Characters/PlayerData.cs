@@ -41,11 +41,6 @@ public class PlayerData
         _newData.characters.Add("Trash Cat");
         _newData.themes.Add("Day");
         _newData.CheckMissionCount();
-        _newData.coins = 10000;
-        _newData.premium = 10;
-        _newData.isTutorialDone = true;
-        _newData.consumables.Add(Consumable.ConsumableType.EXTRALIFE, 1);
-        /*_newData.accessories.Add("TrashCat:");*/
         return _newData;
     }
     public void CheckMissionCount()
@@ -84,7 +79,7 @@ public class PlayerData
         }
         return 0;
     }
-    void ClaimMission(MissionBase a_mission)
+    public void ClaimMission(MissionBase a_mission)
     {
         premium += a_mission.reward;
         missions.Remove(a_mission);
@@ -111,6 +106,7 @@ public class PlayerData
         highscore.name = a_name;
         highscore.score = a_score;
         highscores.Add(highscore);
+        highscores.Sort();
     }
     public void AddConsumable(Consumable.ConsumableType a_type, int a_amount)
     {
@@ -163,20 +159,24 @@ public class PlayerData
             missions[i].RunStart(manager);
         }
     }
-    public void Add(Consumable.ConsumableType type)
-    {
-        if (!consumables.ContainsKey(type))
-        {
-            consumables[type] = 0;
-        }
-
-        consumables[type] += 1;
-    }
     public void UpdateAllMission(TrackManager track)
     {
         foreach (MissionBase mission in missions)
         {
             mission.UpdateMission(track);
+        }
+    }
+    public void UseConsumable(Consumable c)
+    {
+        if (consumables.ContainsKey(c.GetConsumableType()))
+        {
+            int count = GetConsumableAmount(c.GetConsumableType());
+            count--;
+            consumables.Remove(c.GetConsumableType());
+            if (count > 0)
+            {
+                consumables.Add(c.GetConsumableType(), count);
+            }
         }
     }
 }
